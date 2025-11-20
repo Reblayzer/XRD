@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using System;
 
 public class DefuseBombManager : MonoBehaviour
@@ -8,7 +9,7 @@ public class DefuseBombManager : MonoBehaviour
     public CutTapeScript cutTape;
     public WiresMonitor wiresMonitor;
     public bool isDefused = false;
-
+    public UnityEvent bombDefusedEvent, bombExplodedEvent;
     private void Awake()
     {
         if (cutTape == null)
@@ -39,10 +40,12 @@ public class DefuseBombManager : MonoBehaviour
     {
         Debug.Log("Bomb Defused!");
         isDefused = true;
+        bombDefusedEvent?.Invoke();
     }
 
     public void BombExploded()
     {
         Debug.Log("Bomb Exploded!");
+        bombExplodedEvent?.Invoke();
     }
 }
