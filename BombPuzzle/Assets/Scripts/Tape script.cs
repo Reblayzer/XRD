@@ -16,33 +16,7 @@ public class CutTapeScript : MonoBehaviour
     
     public DefuseBombManager defuseBombManager;
 
-    public float bombSpeed = 2f;
-    public float bombMoveDistance = 5f;
-    public GameObject bombObject;
-    private bool isMoving = false;
-
-
     public UnityEvent onPressed, onReleased;
-
-    private void Update()
-    {
-        if (isMoving && bombObject != null)
-        {
-            bombObject.transform.Translate(Vector3.up * bombSpeed * Time.deltaTime);
-        }
-    }
-
-    // Call this function to start moving the object
-    public void StartMovingBombUp()
-    {
-        isMoving = true;
-    }
-
-    // Optional: call this to stop
-    public void StopMovingBomb()
-    {
-        isMoving = false;
-    }
 
     //Checks if the current collider entering is the Button and sets off OnPressed event.
     private void OnTriggerEnter(Collider other)
@@ -64,7 +38,6 @@ public class CutTapeScript : MonoBehaviour
             Debug.Log("Cutter has stopped cutting");
             
             PuzzleSolved();
-            StartMovingBombUp();
             // StartCoroutine(WaitForDeadTime());
         }
     }
