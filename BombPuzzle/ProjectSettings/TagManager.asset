@@ -4,8 +4,11 @@
 TagManager:
   serializedVersion: 3
   tags:
-  - Anchor
-  - Shapes
+  - CubeShape
+  - ArchShape
+  - CylinderShape
+  - TriangleShape
+  - Socket
   layers:
   - Default
   - TransparentFX
