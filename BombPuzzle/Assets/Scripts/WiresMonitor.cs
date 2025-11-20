@@ -14,8 +14,10 @@ public class WiresMonitor : MonoBehaviour
 
     [Tooltip("The wire that defuses the bomb when cut. Assign one of the wires above.")]
     public WireCuttable defuseWire;
-
     bool[] wasCut;
+    private bool isSolved = false;
+    public DefuseBombManager defuseBombManager;
+
 
     void Awake()
     {
@@ -37,10 +39,24 @@ public class WiresMonitor : MonoBehaviour
                 if (defuseWire == null && wires.Length > 0) defuseWire = wires[0];
 
                 if (ReferenceEquals(w, defuseWire))
-                    Debug.Log($"bomb defused (wire={w.name})");
+                    PuzzleSolved();
                 else
-                    Debug.Log($"bomb exploded (wire={w.name})");
+                    defuseBombManager.BombExploded();
             }
         }
+    }
+
+        
+    void PuzzleSolved()
+    {
+        if (isSolved) return;
+        isSolved = true;
+        Debug.Log("Wire puzzle Solved!");
+        defuseBombManager.UpdatePuzzleState();
+    }
+
+    public bool IsSolved()
+    {
+        return isSolved;
     }
 }
