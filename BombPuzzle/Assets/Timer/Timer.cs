@@ -2,7 +2,7 @@
 using TMPro;
 using System;
 
-public class Timer : MonoBehaviour
+public class BombTimer : MonoBehaviour
 {
     public TextMeshProUGUI timerText;
 
