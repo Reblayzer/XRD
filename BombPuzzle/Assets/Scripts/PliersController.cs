@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
+
 
 public enum PliersSide { Left = 0, Right = 1 }
 
@@ -11,21 +13,10 @@ public enum PliersSide { Left = 0, Right = 1 }
 /// </summary>
 public class PliersController : MonoBehaviour
 {
-  public enum SingleHandMode { ExactCopy = 0, MirroredAroundPivot = 1 }
-  [Header("Single-hand behavior")]
-  public SingleHandMode singleHandMode = SingleHandMode.ExactCopy;
-
   [Header("Hinges")]
   public Transform leftHinge;    // hinge transform to rotate (local Y)
   public Transform rightHinge;
-  [Header("Grab points")]
-  public Transform leftGrabPoint; // the transform on the left side that is grabbed by the player
-  public Transform rightGrabPoint; // the transform on the right side that is grabbed by the player
-
-  [Header("Grab distance mapping (meters)")]
-  public float closedDistance = 0.06f; // distance between grabs when pliers are closed
-  public float openDistance = 0.20f;   // distance between grabs when pliers are fully open
-
+  
   [Header("Angles")]
   public float maxOpenAngle = 20f; // degrees for each side (left will be negative)
 
@@ -33,25 +24,13 @@ public class PliersController : MonoBehaviour
   [Range(0f, 0.5f)] public float closeThreshold = 0.08f; // percent threshold considered "closed" (0..1)
 
   // runtime state
-  bool leftGrabbed = false;
-  bool rightGrabbed = false;
-  Transform leftHand;
-  Transform rightHand;
-  // offsets to preserve root transform when a single hand grabs
-  Vector3 leftHandOffsetPos;
-  Quaternion leftHandOffsetRot;
-  Vector3 rightHandOffsetPos;
-  Quaternion rightHandOffsetRot;
+  bool isHeld = false;          // whether the pliers parent is currently held by the player
+  bool isClosed = false;        // whether the pliers are currently closed (trigger pressed)
 
   Vector3 leftHingeStartEuler;
   Vector3 rightHingeStartEuler;
 
-  // track wires touched by each side
-  HashSet<WireCuttable> leftTouched = new HashSet<WireCuttable>();
-  HashSet<WireCuttable> rightTouched = new HashSet<WireCuttable>();
-
-  // actual side transforms (the GameObjects that represent the left/right jaws). We try to auto-find these
-  // from child PliersSideBridge components so we copy the visible jaw transforms directly.
+  // actual side transforms (the GameObjects that represent the left/right jaws).
   Transform leftSideTransform;
   Transform rightSideTransform;
 
@@ -67,219 +46,165 @@ public class PliersController : MonoBehaviour
       if (b == null) continue;
       if (b.side == PliersSide.Left && leftSideTransform == null) leftSideTransform = b.transform;
       if (b.side == PliersSide.Right && rightSideTransform == null) rightSideTransform = b.transform;
+      // ensure the bridge has a reference to this controller
+      if (b.controller == null) b.controller = this;
     }
 
-    // fallback: if left/right grab points are set in inspector and side transforms are missing, use those
-    if (leftSideTransform == null && leftGrabPoint != null) leftSideTransform = leftGrabPoint;
-    if (rightSideTransform == null && rightGrabPoint != null) rightSideTransform = rightGrabPoint;
-
-    // Ensure any XRGrabInteractable on the side bridges uses the configured grab points as attach transforms.
-    // Use reflection so this compiles even if XR Interaction Toolkit isn't present at compile time.
-    try
+    // If this GameObject has an XRGrabInteractable, subscribe to its events so parent-only grabbing works.
+    var grab = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
+    if (grab != null)
     {
-      // find the XRGrabInteractable type in loaded assemblies
-      System.Type grabType = null;
-      foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
-      {
-        grabType = asm.GetType("UnityEngine.XR.Interaction.Toolkit.XRGrabInteractable");
-        if (grabType != null) break;
-      }
-
-      if (grabType != null)
-      {
-        foreach (var b in bridges)
-        {
-          if (b == null) continue;
-          var comp = b.gameObject.GetComponent(grabType);
-          if (comp == null) continue;
-          // set the attachTransform property if available
-          var prop = grabType.GetProperty("attachTransform", BindingFlags.Public | BindingFlags.Instance);
-          if (prop != null)
-          {
-            if (b.side == PliersSide.Left && leftGrabPoint != null) prop.SetValue(comp, leftGrabPoint);
-            if (b.side == PliersSide.Right && rightGrabPoint != null) prop.SetValue(comp, rightGrabPoint);
-          }
-        }
-      }
+      grab.selectEntered.AddListener(OnParentSelectEntered);
+      grab.selectExited.AddListener(OnParentSelectExited);
+      grab.activated.AddListener(OnParentActivated);
+      grab.deactivated.AddListener(OnParentDeactivated);
     }
-    catch { /* fail silently if XR toolkit not present */ }
   }
 
+  // XR event handlers for parent interactable
+  void OnParentSelectEntered(SelectEnterEventArgs args)
+  {
+    OnPickedUp();
+  }
+
+  void OnParentSelectExited(SelectExitEventArgs args)
+  {
+    OnDropped();
+  }
+
+  void OnParentActivated(ActivateEventArgs args)
+  {
+    OnActivated();
+  }
+
+  void OnParentDeactivated(DeactivateEventArgs args)
+  {
+    OnDeactivated();
+  }
   void Update()
   {
-    // If only one side is grabbed, move/rotate the whole pliers so the grabbed point follows the hand
-    if (leftGrabbed ^ rightGrabbed)
+    // Apply simple single-hand behaviour based on hold/close state.
+    if (isHeld)
     {
-      // preserve the relative offset between the grabbed hand and the pliers root
-      if (leftGrabbed && leftHand != null)
+      if (isClosed)
       {
-        transform.rotation = leftHand.rotation * leftHandOffsetRot;
-        transform.position = leftHand.position + leftHand.rotation * leftHandOffsetPos;
-        // update the other side depending on the selected single-hand mode
-        Transform other = rightSideTransform != null ? rightSideTransform : rightGrabPoint;
-        if (other != null)
-        {
-          if (singleHandMode == SingleHandMode.ExactCopy)
-          {
-            other.position = leftHand.position;
-            other.rotation = leftHand.rotation;
-          }
-          else // MirroredAroundPivot
-          {
-            Vector3 centerWorld = (leftGrabPoint != null && rightGrabPoint != null)
-              ? transform.TransformPoint((leftGrabPoint.localPosition + rightGrabPoint.localPosition) * 0.5f)
-              : transform.position;
-            Vector3 offset = leftHand.position - centerWorld;
-            Vector3 syntheticPos = centerWorld - offset;
-            other.position = syntheticPos;
-            // mirror rotation around center by flipping direction toward center
-            Vector3 mirroredForward = (centerWorld - leftHand.position).normalized;
-            other.rotation = Quaternion.LookRotation(mirroredForward, leftHand.up);
-          }
-        }
+        // closed -> both sides at 0 relative angle
+        SetHingeAngles(0f, 0f);
       }
-      else if (rightGrabbed && rightHand != null)
+      else
       {
-        transform.rotation = rightHand.rotation * rightHandOffsetRot;
-        transform.position = rightHand.position + rightHand.rotation * rightHandOffsetPos;
-        // update the other side depending on the selected single-hand mode
-        Transform other = leftSideTransform != null ? leftSideTransform : leftGrabPoint;
-        if (other != null)
-        {
-          if (singleHandMode == SingleHandMode.ExactCopy)
-          {
-            other.position = rightHand.position;
-            other.rotation = rightHand.rotation;
-          }
-          else // MirroredAroundPivot
-          {
-            Vector3 centerWorld = (leftGrabPoint != null && rightGrabPoint != null)
-              ? transform.TransformPoint((leftGrabPoint.localPosition + rightGrabPoint.localPosition) * 0.5f)
-              : transform.position;
-            Vector3 offset = rightHand.position - centerWorld;
-            Vector3 syntheticPos = centerWorld - offset;
-            other.position = syntheticPos;
-            Vector3 mirroredForward = (centerWorld - rightHand.position).normalized;
-            other.rotation = Quaternion.LookRotation(mirroredForward, rightHand.up);
-          }
-        }
-      }
-      // do not change hinge angles while single-handed; they stay at last values
-    }
-
-    // only compute hinge open/close when both hands are grabbed
-    if (leftGrabbed && rightGrabbed && leftHand != null && rightHand != null)
-    {
-      // copy full world transform from each real hand to its side so both sides follow their hands
-      // copy to the actual visible side transforms if available (preferred), otherwise use grab points
-      if (leftSideTransform != null)
-      {
-        leftSideTransform.position = leftHand.position;
-        leftSideTransform.rotation = leftHand.rotation;
-      }
-      else if (leftGrabPoint != null)
-      {
-        leftGrabPoint.position = leftHand.position;
-        leftGrabPoint.rotation = leftHand.rotation;
-      }
-
-      if (rightSideTransform != null)
-      {
-        rightSideTransform.position = rightHand.position;
-        rightSideTransform.rotation = rightHand.rotation;
-      }
-      else if (rightGrabPoint != null)
-      {
-        rightGrabPoint.position = rightHand.position;
-        rightGrabPoint.rotation = rightHand.rotation;
-      }
-
-      float dist = Vector3.Distance(leftHand.position, rightHand.position);
-      float t = Mathf.InverseLerp(closedDistance, openDistance, dist);
-      t = Mathf.Clamp01(t);
-
-      // left angle goes 0 -> -maxOpenAngle
-      float leftAngle = Mathf.Lerp(0f, -maxOpenAngle, t);
-      float rightAngle = Mathf.Lerp(0f, maxOpenAngle, t);
-
-      if (leftHinge != null)
-      {
-        var e = leftHingeStartEuler;
-        e.y = leftHingeStartEuler.y + leftAngle;
-        leftHinge.localEulerAngles = e;
-      }
-      if (rightHinge != null)
-      {
-        var e = rightHingeStartEuler;
-        e.y = rightHingeStartEuler.y + rightAngle;
-        rightHinge.localEulerAngles = e;
-      }
-
-      // check for any common touched wires and cut when closed enough
-      if (t <= closeThreshold)
-      {
-        TryCutTouchedWires();
-      }
-    }
-  }
-
-
-
-  void TryCutTouchedWires()
-  {
-    if (leftTouched.Count == 0 || rightTouched.Count == 0) return;
-    // find intersection
-    foreach (var w in leftTouched)
-    {
-      if (w == null) continue;
-      if (rightTouched.Contains(w) && !w.IsCut)
-      {
-        Debug.Log($"Pliers: cutting wire '{w.name}'");
-        w.Cut();
-      }
-    }
-  }
-
-  // called by side bridges when a hand grabs/releases a side
-  public void SetGrabbed(PliersSide side, bool grabbed, Transform hand)
-  {
-    if (side == PliersSide.Left)
-    {
-      leftGrabbed = grabbed;
-      leftHand = grabbed ? hand : null;
-
-      if (grabbed && leftHand != null && !rightGrabbed)
-      {
-        // store offset from hand to pliers root so we can preserve relative pose while following
-        leftHandOffsetPos = Quaternion.Inverse(leftHand.rotation) * (transform.position - leftHand.position);
-        leftHandOffsetRot = Quaternion.Inverse(leftHand.rotation) * transform.rotation;
+        // open -> left negative, right positive
+        SetHingeAngles(-maxOpenAngle, maxOpenAngle);
       }
     }
     else
     {
-      rightGrabbed = grabbed;
-      rightHand = grabbed ? hand : null;
+      // not held -> rest at 0
+      SetHingeAngles(0f, 0f);
+    }
+  }
 
-      if (grabbed && rightHand != null && !leftGrabbed)
-      {
-        rightHandOffsetPos = Quaternion.Inverse(rightHand.rotation) * (transform.position - rightHand.position);
-        rightHandOffsetRot = Quaternion.Inverse(rightHand.rotation) * transform.rotation;
-      }
+
+  // called by side bridges when a hand grabs/releases a side
+  public void SetGrabbed(PliersSide side, bool grabbed, Transform hand)
+  {
+    // Simplified: any side being grabbed is treated as picking up the whole pliers.
+    if (grabbed)
+    {
+      OnPickedUp();
+    }
+    else
+    {
+      OnDropped();
     }
   }
 
   // called by side bridges when their box collider enters/exits a WireCuttable
   public void SideTouchEnter(PliersSide side, WireCuttable wire)
   {
-    if (wire == null) return;
-    if (side == PliersSide.Left) leftTouched.Add(wire);
-    else rightTouched.Add(wire);
+    // Track which wire each side is touching. If both sides are touching the same
+    // wire and the jaws are currently closed while held, attempt to cut it.
+    if (side == PliersSide.Left)
+      leftTouchedWire = wire;
+    else
+      rightTouchedWire = wire;
+
+    if (isHeld && isClosed)
+      TryCutTouchedWires();
   }
 
   public void SideTouchExit(PliersSide side, WireCuttable wire)
   {
-    if (wire == null) return;
-    if (side == PliersSide.Left) leftTouched.Remove(wire);
-    else rightTouched.Remove(wire);
+    // Clear tracking when a side leaves contact with a wire.
+    if (side == PliersSide.Left)
+    {
+      if (leftTouchedWire == wire) leftTouchedWire = null;
+    }
+    else
+    {
+      if (rightTouchedWire == wire) rightTouchedWire = null;
+    }
+  }
+
+  // ----- Simple single-hand API (can be wired to XRGrabInteractable UnityEvents) -----
+  public void OnPickedUp()
+  {
+    isHeld = true;
+    isClosed = false;
+  }
+
+  public void OnDropped()
+  {
+    isHeld = false;
+    isClosed = false;
+  }
+
+  // called when the interactor activates (e.g. trigger pressed while holding)
+  public void OnActivated()
+  {
+    if (!isHeld) return;
+    isClosed = true;
+    // When the user presses the trigger while holding the pliers, check for a
+    // valid cut condition immediately.
+    TryCutTouchedWires();
+  }
+
+  // called when the interactor deactivates (e.g. trigger released while holding)
+  public void OnDeactivated()
+  {
+    if (!isHeld) return;
+    isClosed = false;
+  }
+
+  void SetHingeAngles(float leftAngle, float rightAngle)
+  {
+    if (leftHinge != null)
+    {
+      var e = leftHingeStartEuler;
+      e.y = leftHingeStartEuler.y + leftAngle;
+      leftHinge.localEulerAngles = e;
+    }
+    if (rightHinge != null)
+    {
+      var e = rightHingeStartEuler;
+      e.y = rightHingeStartEuler.y + rightAngle;
+      rightHinge.localEulerAngles = e;
+    }
+  }
+
+  // --- Cutting state ---
+  // Tracks which WireCuttable (if any) each side is currently touching.
+  WireCuttable leftTouchedWire;
+  WireCuttable rightTouchedWire;
+
+  void TryCutTouchedWires()
+  {
+    if (leftTouchedWire == null || rightTouchedWire == null) return;
+    // require both sides to be touching the exact same wire instance
+    if (!ReferenceEquals(leftTouchedWire, rightTouchedWire)) return;
+    var wire = leftTouchedWire;
+    if (wire.IsCut) return;
+    // perform the cut
+    wire.Cut();
   }
 }
