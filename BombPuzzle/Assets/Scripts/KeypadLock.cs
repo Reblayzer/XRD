@@ -27,7 +27,7 @@ public class KeypadLock : MonoBehaviour
 
     public void AddDigit(string digit)
     {
-        if (enterCode.Length < code.Length)
+        if (enterCode.Length < code.Length && !isSolved)
         {
             enterCode += digit;
             UpdatePasscodeDisplay();
@@ -37,7 +37,7 @@ public class KeypadLock : MonoBehaviour
 
     public void CheckCode()
     {
-        if (enterCode == code)
+        if (enterCode == code && !isSolved)
         {
             Debug.Log("Its correct passcode");
             isSolved = true;
@@ -48,10 +48,10 @@ public class KeypadLock : MonoBehaviour
                 manager.UpdatePuzzleState();
             }
         }
-        else
+        else if (!isSolved)
         {
             Debug.Log("Code is Incorrect");
-            ShowFeedback(true);
+            ShowFeedback(false);
         }
     }
 
@@ -80,6 +80,11 @@ public class KeypadLock : MonoBehaviour
 
     public void ClearCode()
     {
+        if (isSolved)
+        {
+            Debug.Log("Cannot clear code, already solved.");
+            return;
+        }
         enterCode = "";
         UpdatePasscodeDisplay();
         Debug.Log("Screen is clear");
