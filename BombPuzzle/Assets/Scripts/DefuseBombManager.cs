@@ -9,6 +9,7 @@ public class DefuseBombManager : MonoBehaviour
     public CutTapeScript cutTape;
     public WiresMonitor wiresMonitor;
     public KeypadLock keypadLock;
+    public BombTimer bombTimer;
     public bool isDefused = false;
     public UnityEvent bombDefusedEvent, bombExplodedEvent;
     private void Awake()
@@ -45,6 +46,13 @@ public class DefuseBombManager : MonoBehaviour
     {
         Debug.Log("Bomb Defused!");
         isDefused = true;
+        
+        // Stop the timer
+        if (bombTimer != null)
+        {
+            bombTimer.StopTimer();
+        }
+        
         bombDefusedEvent?.Invoke();
     }
 
