@@ -17,6 +17,7 @@ public class WiresMonitor : MonoBehaviour
     bool[] wasCut;
     private bool isSolved = false;
     public DefuseBombManager defuseBombManager;
+    public AudioSource cutSound;
 
 
     void Awake()
@@ -34,7 +35,9 @@ public class WiresMonitor : MonoBehaviour
             if (w == null) continue;
             if (w.IsCut && !wasCut[i])
             {
+                Debug.Log("Wire " + (i + 1) + " was cut.");
                 wasCut[i] = true;
+                cutSound.Play();
                 // ensure there is a defuseWire assigned; default to wires[0] if not
                 if (defuseWire == null && wires.Length > 0) defuseWire = wires[0];
 

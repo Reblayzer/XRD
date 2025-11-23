@@ -10,8 +10,11 @@ public class KeypadLock : MonoBehaviour
 
     [Header("Feedback")]
     public Color correctColor = Color.green;
+    public AudioSource successSound;
     public Color incorrectColor = Color.red;
+    public AudioSource failureSound;
     public Color defaultColor = Color.white;
+    public AudioSource feedbackSound;
     public float feedbackDuration = 1f;
 
     private Coroutine feedbackCoroutine;
@@ -26,9 +29,10 @@ public class KeypadLock : MonoBehaviour
     }
 
     public void AddDigit(string digit)
-    {
+    {   
+        feedbackSound.Play();
         if (enterCode.Length < code.Length && !isSolved)
-        {
+        {   
             enterCode += digit;
             UpdatePasscodeDisplay();
             Debug.Log("Current code" + enterCode);
@@ -39,6 +43,7 @@ public class KeypadLock : MonoBehaviour
     {
         if (enterCode == code && !isSolved)
         {
+            feedbackSound.Play();
             Debug.Log("Its correct passcode");
             isSolved = true;
             ShowFeedback(true);
@@ -69,9 +74,17 @@ public class KeypadLock : MonoBehaviour
         if (passcodeDisplay != null)
         {
             passcodeDisplay.color = isCorrect ? correctColor : incorrectColor;
+            if(isCorrect)
+            {
+                successSound.Play();
+            }
+            else
+            {
+                failureSound.Play();
+            }
             yield return new WaitForSeconds(feedbackDuration);
 
-            if (!isCorrect)
+            if(!isCorrect)
             {
                 passcodeDisplay.color = defaultColor;
             }
@@ -80,6 +93,7 @@ public class KeypadLock : MonoBehaviour
 
     public void ClearCode()
     {
+        feedbackSound.Play();
         if (isSolved)
         {
             Debug.Log("Cannot clear code, already solved.");
