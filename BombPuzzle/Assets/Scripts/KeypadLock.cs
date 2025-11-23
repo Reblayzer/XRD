@@ -6,6 +6,7 @@ public class KeypadLock : MonoBehaviour
     [Header("Keypad Password")]
     public string code = "1234";
     private string enterCode = "";
+    private bool isSolved = false;
 
     public void Start()
     {
@@ -27,6 +28,12 @@ public class KeypadLock : MonoBehaviour
         if (enterCode == code)
         {
             Debug.Log("Its correct passcode");
+            isSolved = true;
+            DefuseBombManager manager = FindFirstObjectByType<DefuseBombManager>();
+            if (manager != null)
+            {
+                manager.UpdatePuzzleState();
+            }
         }
         else
         {
@@ -52,5 +59,10 @@ public class KeypadLock : MonoBehaviour
         {
             passcodeDisplay.text = enterCode;
         }
+    }
+
+    public bool IsSolved()
+    {
+        return isSolved;
     }
 }

@@ -8,6 +8,7 @@ public class DefuseBombManager : MonoBehaviour
     public ShapesPuzzleScript shapesPuzzle;
     public CutTapeScript cutTape;
     public WiresMonitor wiresMonitor;
+    public KeypadLock keypadLock;
     public bool isDefused = false;
     public UnityEvent bombDefusedEvent, bombExplodedEvent;
     private void Awake()
@@ -24,11 +25,15 @@ public class DefuseBombManager : MonoBehaviour
         {
             throw new Exception("WiresMonitor reference is not set in DefuseBombManager.");
         }
+        if (keypadLock == null)
+        {
+            throw new Exception("KeypadLock reference is not set in DefuseBombManager.");
+        }
     }
 
     public void UpdatePuzzleState()
     {
-        if (isDefused || !cutTape.IsSolved() || !shapesPuzzle.IsSolved() || !wiresMonitor.IsSolved())
+        if (isDefused || !cutTape.IsSolved() || !shapesPuzzle.IsSolved() || !wiresMonitor.IsSolved() || !keypadLock.IsSolved())
         {
             return;
         }
