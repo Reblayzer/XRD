@@ -33,7 +33,7 @@ public class DefuseBombManager : MonoBehaviour
 
     public void UpdatePuzzleState()
     {
-        if (isDefused || !cutTape.IsSolved() || !shapesPuzzle.IsSolved() || !wiresMonitor.IsSolved() || !keypadLock.IsSolved())
+        if (isDefused || !keypadLock.IsSolved())
         {
             return;
         }
