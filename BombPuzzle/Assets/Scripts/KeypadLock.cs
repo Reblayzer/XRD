@@ -8,6 +8,13 @@ public class KeypadLock : MonoBehaviour
     private string enterCode = "";
     private bool isSolved = false;
 
+    [Header("Wrong Attempts")]
+    public int maxWrongAttempts = 3;
+    private int wrongAttempts = 0;
+
+    [Header("Bomb Manager")]
+    public DefuseBombManager defuseBombManager;
+
     [Header("Feedback")]
     public Color correctColor = Color.green;
     public AudioSource successSound;
@@ -29,10 +36,10 @@ public class KeypadLock : MonoBehaviour
     }
 
     public void AddDigit(string digit)
-    {   
+    {
         feedbackSound.Play();
         if (enterCode.Length < code.Length && !isSolved)
-        {   
+        {
             enterCode += digit;
             UpdatePasscodeDisplay();
             Debug.Log("Current code" + enterCode);
@@ -55,7 +62,18 @@ public class KeypadLock : MonoBehaviour
         }
         else if (!isSolved)
         {
-            Debug.Log("Code is Incorrect");
+            wrongAttempts++;
+            Debug.Log($"Code is Incorrect. Attempts: {wrongAttempts}/{maxWrongAttempts}");
+
+            if (wrongAttempts >= maxWrongAttempts)
+            {
+                Debug.Log("Too many wrong attempts! Bomb exploding!");
+                if (defuseBombManager != null)
+                {
+                    defuseBombManager.BombExploded();
+                }
+            }
+
             ShowFeedback(false);
         }
     }
@@ -74,7 +92,7 @@ public class KeypadLock : MonoBehaviour
         if (passcodeDisplay != null)
         {
             passcodeDisplay.color = isCorrect ? correctColor : incorrectColor;
-            if(isCorrect)
+            if (isCorrect)
             {
                 successSound.Play();
             }
@@ -84,7 +102,7 @@ public class KeypadLock : MonoBehaviour
             }
             yield return new WaitForSeconds(feedbackDuration);
 
-            if(!isCorrect)
+            if (!isCorrect)
             {
                 passcodeDisplay.color = defaultColor;
             }

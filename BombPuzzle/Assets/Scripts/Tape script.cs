@@ -6,7 +6,7 @@ using UnityEngine.Events;
 public class CutTapeScript : MonoBehaviour
 {
     private bool isSolved = false;
-    
+
     public DefuseBombManager defuseBombManager;
 
     public UnityEvent onPressed, onReleased;
@@ -81,6 +81,13 @@ public class CutTapeScript : MonoBehaviour
         if (isSolved) return;
         isSolved = true;
         Debug.Log("Tape puzzle Solved!");
+
+        // Start the bomb timer when tape is cut
+        if (defuseBombManager.bombTimer != null)
+        {
+            defuseBombManager.bombTimer.StartTimer();
+        }
+
         defuseBombManager.UpdatePuzzleState();
     }
 
