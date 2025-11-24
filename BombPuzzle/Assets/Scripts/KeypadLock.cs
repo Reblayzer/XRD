@@ -8,14 +8,37 @@ public class KeypadLock : MonoBehaviour
     private string enterCode = "";
     private bool isSolved = false;
 
+    [Header("Wrong Attempts")]
+    public int maxWrongAttempts = 3;
+    private int wrongAttempts = 0;
+
+    [Header("Bomb Manager")]
+    public DefuseBombManager defuseBombManager;
+
+    [Header("Feedback")]
+    public Color correctColor = Color.green;
+    public AudioSource successSound;
+    public Color incorrectColor = Color.red;
+    public AudioSource failureSound;
+    public Color defaultColor = Color.white;
+    public AudioSource feedbackSound;
+    public float feedbackDuration = 1f;
+
+    private Coroutine feedbackCoroutine;
+
     public void Start()
     {
         UpdatePasscodeDisplay();
+        if (passcodeDisplay != null)
+        {
+            passcodeDisplay.color = defaultColor;
+        }
     }
 
     public void AddDigit(string digit)
     {
-        if (enterCode.Length < code.Length)
+        feedbackSound.Play();
+        if (enterCode.Length < code.Length && !isSolved)
         {
             enterCode += digit;
             UpdatePasscodeDisplay();
@@ -25,25 +48,75 @@ public class KeypadLock : MonoBehaviour
 
     public void CheckCode()
     {
-        if (enterCode == code)
+        if (enterCode == code && !isSolved)
         {
+            feedbackSound.Play();
             Debug.Log("Its correct passcode");
             isSolved = true;
+            ShowFeedback(true);
             DefuseBombManager manager = FindFirstObjectByType<DefuseBombManager>();
             if (manager != null)
             {
                 manager.UpdatePuzzleState();
             }
         }
-        else
+        else if (!isSolved)
         {
-            Debug.Log("Code is Incorrect");
-            ClearCode();
+            wrongAttempts++;
+            Debug.Log($"Code is Incorrect. Attempts: {wrongAttempts}/{maxWrongAttempts}");
+
+            if (wrongAttempts >= maxWrongAttempts)
+            {
+                Debug.Log("Too many wrong attempts! Bomb exploding!");
+                if (defuseBombManager != null)
+                {
+                    defuseBombManager.BombExploded();
+                }
+            }
+
+            ShowFeedback(false);
+        }
+    }
+
+    private void ShowFeedback(bool isCorrect)
+    {
+        if (feedbackCoroutine != null)
+        {
+            StopCoroutine(feedbackCoroutine);
+        }
+        feedbackCoroutine = StartCoroutine(FeedbackCoroutine(isCorrect));
+    }
+
+    private System.Collections.IEnumerator FeedbackCoroutine(bool isCorrect)
+    {
+        if (passcodeDisplay != null)
+        {
+            passcodeDisplay.color = isCorrect ? correctColor : incorrectColor;
+            if (isCorrect)
+            {
+                successSound.Play();
+            }
+            else
+            {
+                failureSound.Play();
+            }
+            yield return new WaitForSeconds(feedbackDuration);
+
+            if (!isCorrect)
+            {
+                passcodeDisplay.color = defaultColor;
+            }
         }
     }
 
     public void ClearCode()
     {
+        feedbackSound.Play();
+        if (isSolved)
+        {
+            Debug.Log("Cannot clear code, already solved.");
+            return;
+        }
         enterCode = "";
         UpdatePasscodeDisplay();
         Debug.Log("Screen is clear");

@@ -31,6 +31,24 @@ public class LevitateScript : MonoBehaviour
         float startY = transform.position.y;
         moveCoroutine = StartCoroutine(MoveToHeightAndStartBob(startY, defaultTargetWorldY, defaultMoveDuration, defaultBobAmplitude, defaultBobFrequency));
     }
+    
+    public void StopBomb()
+    {
+        if (bobCoroutine != null)
+        {
+            StopCoroutine(bobCoroutine);
+            bobCoroutine = null;
+        }
+
+        if (moveCoroutine != null)
+        {
+            StopCoroutine(moveCoroutine);
+            moveCoroutine = null;
+        }
+
+        StartCoroutine(LowerToGroundRoutine(0.359f, 1.2f)); 
+    }
+
 
     private IEnumerator MoveToHeightAndStartBob(float startY, float targetY, float duration, float bobAmplitude, float bobFrequency)
     {
@@ -79,5 +97,32 @@ public class LevitateScript : MonoBehaviour
             transform.position = p;
             yield return null;
         }
+    }
+
+    private IEnumerator LowerToGroundRoutine(float groundY, float duration)
+    {
+        Vector3 startPos = transform.position;
+        float startY = startPos.y;
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = Mathf.SmoothStep(0f, 1f, t);
+
+            float newY = Mathf.Lerp(startY, groundY, eased);
+
+            Vector3 p = transform.position;
+            p.y = newY;
+            transform.position = p;
+
+            yield return null;
+        }
+
+        Vector3 finalPos = transform.position;
+        finalPos.y = groundY;
+        transform.position = finalPos;
     }
 }
