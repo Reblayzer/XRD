@@ -67,7 +67,7 @@ public class CutTapeScript : MonoBehaviour
             }
             else
             {
-                Debug.Log("Cut failed: not enough movement or time.");
+                Debug.Log("Cut failed: not enough movement or time. Try again. cutDistance: " + cutDistance + ", cutTime: " + cutTime);
             }
 
             // reset for next attempt if you want multiple tries
