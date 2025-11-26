@@ -21,7 +21,7 @@ public class ShapesPuzzleScript : MonoBehaviour
     {
         foreach (var s in slots)
         {
-            if (!s.isFilled)
+            if (!s.IsFilled())
                 return;
         }
 

@@ -8,9 +8,12 @@ public class SocketScript : MonoBehaviour
     [Header("What shape is allowed in this socket? (tag)")]
     public string acceptedTag = "";
 
-    [Header("Has the correct shape been placed?")]
-    public bool isFilled = false;
+    [Header("What audio should be played on socket fill?")]
+    public AudioClip audioClip;
+    private bool isFilled = false;
     private XRSocketInteractor socket;
+
+    private AudioSource audioSource;
     void Awake()
     {
         if (acceptedTag == "")
@@ -20,10 +23,15 @@ public class SocketScript : MonoBehaviour
         socket = GetComponent<XRSocketInteractor>();
         socket.selectEntered.AddListener(OnSelectEntered);
         socket.selectExited.AddListener(OnSelectExited);
+
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void OnSelectEntered(SelectEnterEventArgs args)
     {
+        audioSource.clip = audioClip;
+        audioSource.Play(); 
+
         if (args.interactableObject.transform.CompareTag(acceptedTag))
         {
             isFilled = true;
@@ -44,5 +52,10 @@ public class SocketScript : MonoBehaviour
         }
 
         ShapesPuzzleScript.Instance.OnSlotEmptied(this);
+    }
+
+    public bool IsFilled()
+    {
+        return isFilled;
     }
 }
