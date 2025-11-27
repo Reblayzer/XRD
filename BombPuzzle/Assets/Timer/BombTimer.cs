@@ -76,18 +76,8 @@ public class BombTimer : MonoBehaviour
         else
             timerText.text = "00:00:00";
 
-        timerStopped = true;
-
-        // Stop ticking
-        if (tickRoutine != null)
-        {
-            StopCoroutine(tickRoutine);
-            tickRoutine = null;
-        }
-
-        if (tickingSound != null)
-            tickingSound.Stop();
-
+        StopTimer();
+        
         if (bombManager != null)
         {
             bombManager.BombExploded();
