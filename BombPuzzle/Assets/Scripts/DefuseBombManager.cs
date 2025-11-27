@@ -53,7 +53,7 @@ public class DefuseBombManager : MonoBehaviour
             puzzleSolvedAudioSource.Play();
             return;
         }
-
+        puzzleSolvedAudioSource.Play();
         BombDefused();
     }
 
