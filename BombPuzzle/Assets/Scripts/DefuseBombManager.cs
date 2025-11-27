@@ -83,6 +83,13 @@ public class DefuseBombManager : MonoBehaviour
         }
         Debug.Log("Bomb Exploded!");
         isDefused = true;
+        
+        // Stop the timer
+        if (bombTimer != null)
+        {
+            bombTimer.StopTimer();
+        }
+        
         bombExplodedEvent?.Invoke();
     }
 }
