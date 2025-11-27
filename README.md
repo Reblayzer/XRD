@@ -35,8 +35,14 @@ A series of blog post were managed across the development of this VR project. Th
 
 The following resources were used during the project development process.
 
+Assets
+
 - [Rock Wall Basement with Baked Lighting](https://skfb.ly/oEKnK)
 - [Wooden Table](https://skfb.ly/6sHoo)
 - [Box cutter/Utility knife Gameready](https://skfb.ly/6WSpq)
 - [Rack](https://skfb.ly/6WwpV)
 - [Workplace Tools](https://assetstore.unity.com/packages/3d/props/industrial/workplace-tools-86242?fbclid=IwY2xjawOUQBJleHRuA2FlbQIxMQBzcnRjBmFwcF9pZAEwAAEe7cez4yCLkdRepkNSpRPVavTjwWiiIYl0sNsrYHeR2QUMYyojz2iaeTYAaVs_aem_JxB3dA5enGfYZwtT-1eo1g)
+
+Sound Effects
+
+- [Tick - Sound Effect (HD)](https://youtu.be/_Gukzgo-Mi4?si=IQiqy3oHrBdJvKRy)
