@@ -41,8 +41,11 @@ Assets
 - [Wooden Table](https://skfb.ly/6sHoo)
 - [Box cutter/Utility knife Gameready](https://skfb.ly/6WSpq)
 - [Rack](https://skfb.ly/6WwpV)
-- [Workplace Tools](https://assetstore.unity.com/packages/3d/props/industrial/workplace-tools-86242?fbclid=IwY2xjawOUQBJleHRuA2FlbQIxMQBzcnRjBmFwcF9pZAEwAAEe7cez4yCLkdRepkNSpRPVavTjwWiiIYl0sNsrYHeR2QUMYyojz2iaeTYAaVs_aem_JxB3dA5enGfYZwtT-1eo1g)
+- [Workplace Tools](https://assetstore.unity.com/packages/3d/props/industrial/workplace-tools-86242)
+- [Electrical Box](https://www.fab.com/listings/ca06bd2a-1dcb-4fd1-9bac-bb218a2435d4)
 
 Sound Effects
 
 - [Tick - Sound Effect (HD)](https://youtu.be/_Gukzgo-Mi4?si=IQiqy3oHrBdJvKRy)
+- [Pliers - Sound Effect] (https://pixabay.com/sound-effects/pliers-155627/)
+- [Electric Screwdriver - Sound Effect] (https://pixabay.com/sound-effects/screw-driver-24162/)
